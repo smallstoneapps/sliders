@@ -6,7 +6,7 @@ This is a watchface for the [Pebble Smartwatch][1].
 
 You can install this watchface by clicking [this link][2] on the Android or iOS device that you have paired to your Pebble watch.
 
-You can also install the inverted version of the watchface by clicking [this link][3]
+You can also install the inverted version of the watchface (see the second screenshot) by clicking [this link][3].
 
 ### Screenshots
 
