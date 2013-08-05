@@ -1,0 +1,23 @@
+{
+  "friendlyVersion": "VERSION",
+  "versionDefName": "APP_RESOURCES",
+  "media": [
+    {
+      "defName": "MENU_ICON",
+      "type": "png",
+      "file": "images/menu.png"
+    },
+    {
+      "defName": "FONT_MONO_BOLD_34",
+      "type": "font",
+      "file": "fonts/AUDIMB__.TTF",
+      "characterRegex": "[0-9]"
+    },
+    {
+      "defName": "FONT_MONO_22",
+      "type": "font",
+      "file": "fonts/AUDIM__.TTF",
+      "characterRegex": "[0-9]"
+    }
+  ]
+}
