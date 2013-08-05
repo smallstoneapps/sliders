@@ -158,6 +158,9 @@ void hours_layer_update_callback(Layer* me, GContext* ctx) {
     if (hour < 0) {
       hour += 24;
     }
+    if (hour >= 24) {
+      hour -= 24;
+    }
     if (! clock_is_24h_style() && hour > 12) {
       hour -= 12;
     }
@@ -176,6 +179,7 @@ void minutes_layer_update_callback(Layer* me, GContext* ctx) {
   for (int m = 0; m < 5; m += 1) {
     int minute = minute_now - 2 + m;
     if (minute < 0) { minute += 60; }
+    if (minute >= 60) { minute -= 60; }
     draw_number(ctx, minute_str[m], minute, m);
   }
 }
@@ -191,6 +195,7 @@ void seconds_layer_update_callback(Layer* me, GContext* ctx) {
   for (int s = 0; s < 5; s += 1) {
     int second = second_now - 2 + s;
     if (second < 0) { second += 60; }
+    if (second >= 60) { second -= 60; }
     draw_number(ctx, second_str[s], second, s);
   }
 }
