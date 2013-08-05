@@ -1,6 +1,6 @@
 ## Pebble Watchface :: Sliders
 
-This is an app for the [Pebble Smartwatch][1]. 
+This is a watchface for the [Pebble Smartwatch][1]. 
 
 ### Install
 
@@ -10,7 +10,7 @@ You can also install the inverted version of the watchface by clicking [this lin
 
 ### Screenshots
 
-![Pebble Screenshot #1](http://smallstoneapps.s3.amazonaws.com/sliders/screenshots/screenshot_sliders_1-0_01_w.png)  ![Pebble Screenshot #2](http://smallstoneapps.s3.amazonaws.com/multi-timer/screenshots/screenshot_sliders_1-0_02_w.png)
+![Pebble Screenshot #1](http://smallstoneapps.s3.amazonaws.com/sliders/screenshots/screenshot_sliders_1-0_01_w.png)  ![Pebble Screenshot #2](http://smallstoneapps.s3.amazonaws.com/sliders/screenshots/screenshot_sliders_1-0_02_w.png)
 
 
 [1]: http://getpebble.com
