@@ -20,120 +20,109 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "pebble_os.h"
-#include "pebble_app.h"
-#include "pebble_fonts.h"
+#include <pebble_os.h>
+#include <pebble_app.h>
+#include <pebble_fonts.h>
 
-#include "config.h"
-
-#if ROCKSHOT
-#include "http.h"
-#include "httpcapture.h"
-#endif
-
-#define MY_UUID { 0x64, 0x6A, 0xA5, 0xC6, 0x74, 0xA3, 0x46, 0xC8, 0xBA, 0x44, 0xD9, 0x18, 0xA3, 0x02, 0xAC, 0x77 }
-
-PBL_APP_INFO(MY_UUID, "Sliders", "Matthew Tole", 1, 0, RESOURCE_ID_MENU_ICON, APP_INFO_WATCH_FACE);
-
-#if INVERT_COLORS
-#define COLOR_FOREGROUND GColorWhite
-#define COLOR_BACKGROUND GColorBlack
-#else
-#define COLOR_FOREGROUND GColorBlack
-#define COLOR_BACKGROUND GColorWhite
-#endif
+#include "settings.h"
 
 #define PADDING 12
 #define HEIGHT 40
 #define FONT_SIZE 34
 #define FONT_SIZE_SMALL 22
+#define FONT_SIZE_DATE 24
 
-Window window;
-Layer layer_hours;
-Layer layer_minutes;
-Layer layer_seconds;
-GFont font_normal;
-GFont font_bold;
+static Window* window;
+static Layer* layer_hours;
+static Layer* layer_minutes;
+static Layer* layer_seconds;
+static Layer* layer_date;
+static GFont* font_normal;
+static GFont* font_bold;
+static GFont* font_date;
+static struct tm* current_time = NULL;
 
-void handle_init(AppContextRef ctx);
-void hours_layer_update_callback(Layer* me, GContext* ctx);
-void minutes_layer_update_callback(Layer* me, GContext* ctx);
-void seconds_layer_update_callback(Layer* me, GContext* ctx);
-void handle_tick(AppContextRef ctx, PebbleTickEvent *t);
-PblTm get_now();
+static void do_init();
+static void do_deinit();
+static void hours_layer_update_callback(Layer* me, GContext* ctx);
+static void minutes_layer_update_callback(Layer* me, GContext* ctx);
+static void seconds_layer_update_callback(Layer* me, GContext* ctx);
+static void date_layer_update_callback(Layer* me, GContext* ctx);
+static void handle_tick(struct tm* tick_time, TimeUnits units_changed);
 
-#if ROCKSHOT
-void  http_success(int32_t cookie, int http_status, DictionaryIterator *dict, void *ctx);
-#endif
-
-void pbl_main(void *params) {
-  PebbleAppHandlers handlers = {
-    .init_handler = &handle_init,
-    .tick_info = {
-      .tick_handler = &handle_tick,
-      .tick_units = SECOND_UNIT
-    }
-  };
-
-  #if ROCKSHOT
-  handlers.messaging_info = (PebbleAppMessagingInfo) {
-    .buffer_sizes = {
-      .inbound = 124,
-      .outbound = 124,
-    },
-  };
-  http_capture_main(&handlers);
-  #endif
-
-  app_event_loop(params, &handlers);
+int main(void) {
+  do_init();
+  app_event_loop();
+  do_deinit();
 }
 
-void handle_init(AppContextRef ctx) {
-  window_init(&window, "Sliders Window");
-  window_stack_push(&window, true);
-  window_set_background_color(&window, COLOR_BACKGROUND);
+void do_init() {
 
-  resource_init_current_app(&APP_RESOURCES);
-
-  #if ROCKSHOT
-  http_set_app_id(15);
-  http_register_callbacks((HTTPCallbacks) {
-    .success = http_success
-  }, NULL);
-  http_capture_init(ctx);
-  #endif
+  window = window_create();
+  window_stack_push(window, true);
+  window_set_background_color(window, GColorWhite);
 
   font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_MONO_22));
   font_bold = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_MONO_BOLD_34));
+  font_date = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_MONO_BOLD_24));
 
-  layer_init(&layer_hours, GRect(0, PADDING, 144, HEIGHT));
-  layer_hours.update_proc = &hours_layer_update_callback;
-  layer_add_child(&window.layer, &layer_hours);
+  layer_hours = layer_create(GRect(0, PADDING, 144, HEIGHT));
+  layer_set_update_proc(layer_hours, &hours_layer_update_callback);
+  layer_add_child(window_get_root_layer(window), layer_hours);
 
-  layer_init(&layer_minutes, GRect(0, PADDING * 2 + HEIGHT, 144, HEIGHT));
-  layer_minutes.update_proc = &minutes_layer_update_callback;
-  layer_add_child(&window.layer, &layer_minutes);
+  layer_minutes = layer_create(GRect(0, PADDING * 2 + HEIGHT, 144, HEIGHT));
+  layer_set_update_proc(layer_minutes, &minutes_layer_update_callback);
+  layer_add_child(window_get_root_layer(window), layer_minutes);
 
-  layer_init(&layer_seconds, GRect(0, PADDING * 3 + HEIGHT * 2, 144, HEIGHT));
-  layer_seconds.update_proc = &seconds_layer_update_callback;
-  layer_add_child(&window.layer, &layer_seconds);
+  #if DATE
+  layer_date = layer_create(GRect(0, PADDING * 3 + HEIGHT * 2, 144, HEIGHT));
+  layer_set_update_proc(layer_date, &date_layer_update_callback);
+  layer_add_child(window_get_root_layer(window), layer_date);
+  #else
+  layer_seconds = layer_create(GRect(0, PADDING * 3 + HEIGHT * 2, 144, HEIGHT));
+  layer_set_update_proc(layer_seconds, &seconds_layer_update_callback);
+  layer_add_child(window_get_root_layer(window), layer_seconds);
+  #endif
+
+  #if DATE
+  tick_timer_service_subscribe(MINUTE_UNIT, &handle_tick);
+  #else
+  tick_timer_service_subscribe(SECOND_UNIT, &handle_tick);
+  #endif
+  time_t now = time(NULL);
+  struct tm *tmp_time = localtime(&now);
+  handle_tick(tmp_time, SECOND_UNIT);
 }
 
-void handle_tick(AppContextRef ctx, PebbleTickEvent *t) {
-  PblTm now = get_now();
-  layer_mark_dirty(&layer_seconds);
-  if (now.tm_sec == 0) {
-    if (now.tm_min == 0) {
-      layer_mark_dirty(&layer_hours);
+void do_deinit() {
+  layer_destroy(layer_hours);
+  layer_destroy(layer_minutes);
+  layer_destroy(layer_seconds);
+  window_destroy(window);
+  tick_timer_service_unsubscribe();
+}
+
+static void handle_tick(struct tm* tick_time, TimeUnits units_changed) {
+  current_time = tick_time;
+  #if DATE
+  if (tick_time->tm_hour == 0 && tick_time->tm_min == 0 && tick_time->tm_hour == 0) {
+    layer_mark_dirty(layer_date);
+  }
+  #else
+  layer_mark_dirty(layer_seconds);
+  #endif
+  if (tick_time->tm_sec == 0) {
+    if (tick_time->tm_min == 0) {
+      layer_mark_dirty(layer_hours);
     }
-    layer_mark_dirty(&layer_minutes);
+    layer_mark_dirty(layer_minutes);
   }
 }
 
 void draw_number(GContext* ctx, char* str, int num, int pos) {
   bool is_now = pos == 2;
 
-  graphics_context_set_text_color(ctx, COLOR_BACKGROUND);
+  graphics_context_set_text_color(ctx, GColorWhite);
 
   GFont font = (is_now ? font_bold : font_normal);
   str = "XX";
@@ -146,12 +135,16 @@ void draw_number(GContext* ctx, char* str, int num, int pos) {
 }
 
 void hours_layer_update_callback(Layer* me, GContext* ctx) {
-  graphics_context_set_fill_color(ctx, COLOR_FOREGROUND);
-  graphics_fill_rect(ctx, me->bounds, 0, GCornerNone);
+
+  graphics_context_set_fill_color(ctx, GColorBlack);
+  graphics_fill_rect(ctx, layer_get_bounds(me), 0, GCornerNone);
+
+  if (current_time == NULL) {
+    return;
+  }
 
   static char* hour_str[5];
-  PblTm now = get_now();
-  int hour_now = now.tm_hour;
+  int hour_now = current_time->tm_hour;
 
   for (int h = 0; h < 5; h += 1) {
     int hour = hour_now - 2 + h;
@@ -169,12 +162,15 @@ void hours_layer_update_callback(Layer* me, GContext* ctx) {
 }
 
 void minutes_layer_update_callback(Layer* me, GContext* ctx) {
-  graphics_context_set_fill_color(ctx, COLOR_FOREGROUND);
-  graphics_fill_rect(ctx, me->bounds, 0, GCornerNone);
+  graphics_context_set_fill_color(ctx, GColorBlack);
+  graphics_fill_rect(ctx, layer_get_bounds(me), 0, GCornerNone);
+
+  if (current_time == NULL) {
+    return;
+  }
 
   static char* minute_str[5];
-  PblTm now = get_now();
-  int minute_now = now.tm_min;
+  int minute_now = current_time->tm_min;
 
   for (int m = 0; m < 5; m += 1) {
     int minute = minute_now - 2 + m;
@@ -185,12 +181,15 @@ void minutes_layer_update_callback(Layer* me, GContext* ctx) {
 }
 
 void seconds_layer_update_callback(Layer* me, GContext* ctx) {
-  graphics_context_set_fill_color(ctx, COLOR_FOREGROUND);
-  graphics_fill_rect(ctx, me->bounds, 0, GCornerNone);
+  graphics_context_set_fill_color(ctx, GColorBlack);
+  graphics_fill_rect(ctx, layer_get_bounds(me), 0, GCornerNone);
+
+  if (current_time == NULL) {
+    return;
+  }
 
   static char* second_str[5];
-  PblTm now = get_now();
-  int second_now = now.tm_sec;
+  int second_now = current_time->tm_sec;
 
   for (int s = 0; s < 5; s += 1) {
     int second = second_now - 2 + s;
@@ -200,12 +199,16 @@ void seconds_layer_update_callback(Layer* me, GContext* ctx) {
   }
 }
 
-PblTm get_now() {
-  PblTm now;
-  get_time(&now);
-  return now;
-}
+void date_layer_update_callback(Layer* me, GContext* ctx) {
+  graphics_context_set_fill_color(ctx, GColorBlack);
+  graphics_fill_rect(ctx, layer_get_bounds(me), 0, GCornerNone);
+  graphics_context_set_text_color(ctx, GColorWhite);
 
-#if ROCKSHOT
-void http_success(int32_t cookie, int http_status, DictionaryIterator *dict, void *ctx) {}
-#endif
+  if (current_time == NULL) {
+    return;
+  }
+
+  char date_str[64];
+  strftime(date_str, sizeof(date_str), DATE_FORMAT, current_time);
+  graphics_text_draw(ctx, date_str, font_date, GRect(0, 3, 144, FONT_SIZE_DATE), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+}
