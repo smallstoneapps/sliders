@@ -24,6 +24,8 @@
 #include <pebble_app.h>
 #include <pebble_fonts.h>
 
+#include "pebble-assist.h"
+
 #include "settings.h"
 
 #define PADDING 12
@@ -69,19 +71,20 @@ void do_init() {
   layer_hours = layer_create(GRect(0, PADDING, 144, HEIGHT));
   layer_set_update_proc(layer_hours, &hours_layer_update_callback);
   layer_add_child(window_get_root_layer(window), layer_hours);
+  layer_add_to_window(layer_hours, window);
 
   layer_minutes = layer_create(GRect(0, PADDING * 2 + HEIGHT, 144, HEIGHT));
   layer_set_update_proc(layer_minutes, &minutes_layer_update_callback);
-  layer_add_child(window_get_root_layer(window), layer_minutes);
+  layer_add_to_window(layer_minutes, window);
 
   #if DATE
   layer_date = layer_create(GRect(0, PADDING * 3 + HEIGHT * 2, 144, HEIGHT));
   layer_set_update_proc(layer_date, &date_layer_update_callback);
-  layer_add_child(window_get_root_layer(window), layer_date);
+  layer_add_to_window(layer_date, window);
   #else
   layer_seconds = layer_create(GRect(0, PADDING * 3 + HEIGHT * 2, 144, HEIGHT));
   layer_set_update_proc(layer_seconds, &seconds_layer_update_callback);
-  layer_add_child(window_get_root_layer(window), layer_seconds);
+  layer_add_to_window(layer_seconds, window);
   #endif
 
   #if DATE
@@ -143,7 +146,7 @@ void hours_layer_update_callback(Layer* me, GContext* ctx) {
     return;
   }
 
-  static char* hour_str[5];
+  char* hour_str[5];
   int hour_now = current_time->tm_hour;
 
   for (int h = 0; h < 5; h += 1) {
@@ -169,7 +172,7 @@ void minutes_layer_update_callback(Layer* me, GContext* ctx) {
     return;
   }
 
-  static char* minute_str[5];
+  char* minute_str[5];
   int minute_now = current_time->tm_min;
 
   for (int m = 0; m < 5; m += 1) {
@@ -188,7 +191,7 @@ void seconds_layer_update_callback(Layer* me, GContext* ctx) {
     return;
   }
 
-  static char* second_str[5];
+  char* second_str[5];
   int second_now = current_time->tm_sec;
 
   for (int s = 0; s < 5; s += 1) {
