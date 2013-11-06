@@ -3,8 +3,8 @@
   "shortName": "Sliders",
   "longName": "Sliders",
   "companyName": "Matthew Tole",
-  "versionCode": 2,
-  "versionLabel": "2.1.0",
+  "versionCode": 3,
+  "versionLabel": "2.2.0",
   "watchapp": {
     "watchface": true
   },

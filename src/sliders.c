@@ -15,14 +15,14 @@
 #define FONT_SIZE_SMALL 22
 #define FONT_SIZE_DATE 24
 
-static Window* window;
-static Layer* layer_hours;
-static Layer* layer_minutes;
-static Layer* layer_seconds;
-static Layer* layer_date;
-static GFont* font_normal;
-static GFont* font_bold;
-static GFont* font_date;
+static Window* window = NULL;
+static Layer* layer_hours = NULL;
+static Layer* layer_minutes = NULL;
+static Layer* layer_seconds = NULL;
+static Layer* layer_date = NULL;
+static GFont* font_normal = NULL;
+static GFont* font_bold = NULL;
+static GFont* font_date = NULL;
 static struct tm* current_time = NULL;
 
 static void do_init();
@@ -79,10 +79,11 @@ void do_init() {
 }
 
 void do_deinit() {
-  layer_destroy(layer_hours);
-  layer_destroy(layer_minutes);
-  layer_destroy(layer_seconds);
-  window_destroy(window);
+  layer_destroy_safe(layer_hours);
+  layer_destroy_safe(layer_minutes);
+  layer_destroy_safe(layer_seconds);
+  layer_destroy_safe(layer_date);
+  window_destroy_safe(window);
   tick_timer_service_unsubscribe();
 }
 
@@ -115,7 +116,7 @@ void draw_number(GContext* ctx, char* str, int num, int pos) {
   GSize text_size = graphics_text_layout_get_max_used_size(ctx, str, font, text_box, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
   text_box.origin = GPoint((36 * pos) - (text_size.w / 2), 14 - (text_size.h / 2) + (is_now ? -1 : 3));
   text_box.size = text_size;
-  graphics_text_draw(ctx, str, font, text_box, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+  graphics_draw_text(ctx, str, font, text_box, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 }
 
 void hours_layer_update_callback(Layer* me, GContext* ctx) {
@@ -194,5 +195,5 @@ void date_layer_update_callback(Layer* me, GContext* ctx) {
 
   char date_str[64];
   strftime(date_str, sizeof(date_str), DATE_FORMAT, current_time);
-  graphics_text_draw(ctx, date_str, font_date, GRect(0, 3, 144, FONT_SIZE_DATE), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+  graphics_draw_text(ctx, date_str, font_date, GRect(0, 3, 144, FONT_SIZE_DATE), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 }
