@@ -7,6 +7,7 @@
 
 #include <pebble.h>
 #include "libs/pebble-assist.h"
+#include "libs/rockshot.h"
 #include "settings.h"
 
 #define PADDING 12
@@ -25,6 +26,8 @@ static GFont* font_bold = NULL;
 static GFont* font_date = NULL;
 static struct tm* current_time = NULL;
 
+static Layer* layer_rockshot = NULL;
+
 static void do_init();
 static void do_deinit();
 static void hours_layer_update_callback(Layer* me, GContext* ctx);
@@ -41,6 +44,9 @@ int main(void) {
 
 void do_init() {
 
+  rockshot_init();
+  rockshot_setup_no_app_message();
+
   window = window_create();
   window_stack_push(window, true);
   window_set_background_color(window, GColorWhite);
@@ -48,6 +54,8 @@ void do_init() {
   font_normal = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_MONO_22));
   font_bold = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_MONO_BOLD_34));
   font_date = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_MONO_BOLD_24));
+
+  layer_rockshot = rockshot_create_layer(window);
 
   layer_hours = layer_create(GRect(0, PADDING, 144, HEIGHT));
   layer_set_update_proc(layer_hours, &hours_layer_update_callback);
@@ -84,6 +92,7 @@ void do_deinit() {
   layer_destroy_safe(layer_seconds);
   layer_destroy_safe(layer_date);
   window_destroy_safe(window);
+  layer_destroy_safe(layer_rockshot);
   tick_timer_service_unsubscribe();
 }
 
