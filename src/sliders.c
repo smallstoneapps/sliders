@@ -6,7 +6,7 @@
  */
 
 #include <pebble.h>
-#include "libs/pebble-assist.h"
+#include "libs/pebble-assist/pebble-assist.h"
 #include "settings.h"
 
 #define PADDING 12
@@ -79,11 +79,11 @@ void do_init() {
 }
 
 void do_deinit() {
-  layer_destroy_safe(layer_hours);
-  layer_destroy_safe(layer_minutes);
-  layer_destroy_safe(layer_seconds);
-  layer_destroy_safe(layer_date);
-  window_destroy_safe(window);
+  layer_destroy(layer_hours);
+  layer_destroy(layer_minutes);
+  layer_destroy(layer_seconds);
+  layer_destroy(layer_date);
+  window_destroy(window);
   tick_timer_service_unsubscribe();
 }
 
@@ -113,7 +113,7 @@ void draw_number(GContext* ctx, char* str, int num, int pos) {
   str = "XX";
   snprintf(str, sizeof(str), "%02d", num);
   GRect text_box = GRect(0, 0, 100, (is_now ? FONT_SIZE : FONT_SIZE_SMALL));
-  GSize text_size = graphics_text_layout_get_max_used_size(ctx, str, font, text_box, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+  GSize text_size = graphics_text_layout_get_content_size(str, font, text_box, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter);
   text_box.origin = GPoint((36 * pos) - (text_size.w / 2), 14 - (text_size.h / 2) + (is_now ? -1 : 3));
   text_box.size = text_size;
   graphics_draw_text(ctx, str, font, text_box, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
